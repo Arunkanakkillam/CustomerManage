@@ -2,88 +2,92 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-
-namespace CustomerManage.Controllers
+[Route("api/[controller]")]
+[ApiController]
+public class CustomerController : ControllerBase
 {
-    public class CustomerController
+    private readonly CustomerDbContext _context;
+
+    public CustomerController(CustomerDbContext context)
     {
-        private readonly CustomerDbContext _context;
+        _context = context;
+    }
 
-        public CustomerController(CustomerDbContext context)
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<Customer>>> GetCustomers()
+    {
+        return await _context.Customers.Include(c => c.EmploymentDetail).ToListAsync();
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<Customer>> GetCustomer(int id)
+    {
+        var customer = await _context.Customers.Include(c => c.EmploymentDetail).FirstOrDefaultAsync(c => c.Id == id);
+
+        if (customer == null)
         {
-            _context = context;
+            return NotFound();
         }
 
-        [HttpGet("all")]
-        public async Task<ActionResult<IEnumerable<Customer>>> GetCustomers()
+        return customer;
+    }
+    [HttpPost]
+    public async Task<ActionResult<Customer>> PostCustomer(CustomerDto customerDto)
+    {
+        if (!ModelState.IsValid)
         {
-            return await _context.Customers.Include(c => c.EmploymentDetail).ToListAsync();
+            return BadRequest(ModelState);
         }
 
-    
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Customer>> GetCustomer(int id)
+        var customer = new Customer
         {
-            var customer = await _context.Customers.Include(c => c.EmploymentDetail).FirstOrDefaultAsync(c => c.Id == id);
-
-            if (customer == null)
+            FullName = customerDto.FullName,
+            Email = customerDto.Email,
+            PhoneNumber = customerDto.PhoneNumber,
+            DateOfBirth = customerDto.DateOfBirth,
+            EmploymentDetail = customerDto.EmploymentDetail != null ? new EmploymentDetail
             {
-                return new Customer();
-            }
+                CompanyName = customerDto.EmploymentDetail.CompanyName,
+                JobTitle = customerDto.EmploymentDetail.JobTitle,
+                Salary = customerDto.EmploymentDetail.Salary,
+                CustomerId = customerDto.Id
+            } : null
+        };
 
-            return customer;
-        }
+        _context.Customers.Add(customer);
+        await _context.SaveChangesAsync();
 
-    
-        [HttpPost("addcustomer")]
-        public async Task<ActionResult<string>> PostCustomer(CustomerDto customer)
+        return CreatedAtAction(nameof(GetCustomer), new { id = customer.Id }, customer);
+    }
+
+
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> PutCustomer(int id, Customer customer)
+    {
+        if (id != customer.Id)
         {
-            if (customer==null)
-            {
-                return "please fill all the details";
-            }
-
-            _context.Customers.Add(new Customer
-            {
-                FullName = customer.FullName,
-                Email = customer.Email,
-                PhoneNumber = customer.PhoneNumber,
-                Id = new int()
-            });
-            await _context.SaveChangesAsync();
-
-            return $"new customer added fulll name is : {customer.FullName}";
+            return BadRequest();
         }
 
-       
-        [HttpPut("{id}")]
-        public async Task<ActionResult<bool>> PutCustomer(int id, Customer customer)
+        _context.Entry(customer).State = EntityState.Modified;
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteCustomer(int id)
+    {
+        var customer = await _context.Customers.FindAsync(id);
+        if (customer == null)
         {
-            if (id != customer.Id)
-            {
-                return false;
-            }
-
-            _context.Entry(customer).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
-
-            return true;
+            return NotFound();
         }
 
-       
-        [HttpDelete("{id}")]
-        public async Task<ActionResult<bool>> DeleteCustomer(int id)
-        {
-            var customer = await _context.Customers.FindAsync(id);
-            if (customer == null)
-            {
-                return false;
-            }
+        _context.Customers.Remove(customer);
+        await _context.SaveChangesAsync();
 
-            _context.Customers.Remove(customer);
-            await _context.SaveChangesAsync();
-
-            return true;
-        }
+        return NoContent();
     }
 }

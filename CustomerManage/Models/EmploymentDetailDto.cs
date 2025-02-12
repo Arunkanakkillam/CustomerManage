@@ -2,7 +2,7 @@
 
 namespace CustomerManage.Models
 {
-    public class EmploymentDetail
+    public class EmploymentDetailDto
     {
         public int Id { get; set; }
 
@@ -19,7 +19,6 @@ namespace CustomerManage.Models
         public decimal Salary { get; set; }
 
         public int CustomerId { get; set; }
-        public Customer? Customer { get; set; }
     }
 
 }

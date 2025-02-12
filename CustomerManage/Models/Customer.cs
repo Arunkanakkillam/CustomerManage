@@ -15,7 +15,6 @@ namespace CustomerManage.Models
         public string Email { get; set; }
 
         [Required]
-        [Phone]
         public string PhoneNumber { get; set; }
 
         public DateTime DateOfBirth { get; set; }
